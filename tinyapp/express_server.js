@@ -29,6 +29,11 @@ app.get("/urls/:shortURL", (req, res) => {
   res.render("urls_show", templateVars);
 });
 
+app.get("/u/:shortURL", (req, res) => {
+  const longURL = urlDatabase[req.params.shortURL]
+  res.redirect(longURL);
+});
+
 app.get("/urls", (req, res) => {
   let templateVars = {urls: urlDatabase}
   res.render("urls_index", templateVars );
@@ -38,13 +43,7 @@ app.get("/hello", (req, res) => {
   res.send("<html><body>Hello <b>World</b></body></html>\n");
 });
 
-app.post("/urls", (req, res) => {
-  console.log(req.body);  // Log the POST request body to the console
-  res.send("Ok");         // Respond with 'Ok' (we will replace this)
-});
-
 function generateRandomString() {
-  let count = 0;
   let result = [];
   let arrayString = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m","n", "o", "p","q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0"]
   console.log(arrayString.length)
@@ -55,6 +54,15 @@ function generateRandomString() {
   }
   return result.join('')
 }
+
+app.post("/urls", (req, res) => {
+  let genURL = generateRandomString();
+  urlDatabase[genURL] = req.body.longURL;
+  console.log(genURL)
+  res.redirect("/urls/" + genURL);         // Respond with 'Ok' (we will replace this)
+});
+
+
 
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
