@@ -15,12 +15,18 @@
           <form style = "position: absolute; right: 9px" method="POST" action="/clearCookie"><button>Logout</button></form>
 
         <% } else { %>
-            <form style = "position: absolute; right: 9px" class="float-right" action="/login" method="POST">
+
+          <form style = "position: absolute; right: 103px" class="float-right" action="/login" method="GET">
+            
+            <div class="form-inline justify-content-right">
+              <button type="submit" href="/login" class="btn btn-primary">Login</button>
+            </div>
+          </form>
+            
+          <form style = "position: absolute; right: 9px" class="float-right" action="/register" method="GET">
             
               <div class="form-inline justify-content-right">
-                <label for="username">Name:</label>
-                <input class="ml-auto" type="text" name="username" placeholder="username" style="width: 200px; margin: .5em">
-                <button type="submit" class="btn btn-primary">Submit</button>
+                <button type="submit" href="/results" class="btn btn-primary">Register</button>
               </div>
             </form>
         <% } %>
