@@ -8,6 +8,23 @@
       <div class="navbar-nav">
         <a class="nav-item nav-link" href="/urls">My URLs</a>
         <a class="nav-item nav-link" href="/urls/new">Create New URL</a>
+
+        <% if(username) { %>
+          <a style = "position: absolute; right: 85px" class="" >Your logined as: <%=username%></a>
+
+          <form style = "position: absolute; right: 9px" method="POST" action="/clearCookie"><button>Logout</button></form>
+
+        <% } else { %>
+            <form style = "position: absolute; right: 9px" class="float-right" action="/login" method="POST">
+            
+              <div class="form-inline justify-content-right">
+                <label for="username">Name:</label>
+                <input class="ml-auto" type="text" name="username" placeholder="username" style="width: 200px; margin: .5em">
+                <button type="submit" class="btn btn-primary">Submit</button>
+              </div>
+            </form>
+        <% } %>
+        
       </div>
     </div>
   </nav>
