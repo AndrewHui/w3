@@ -4,12 +4,19 @@ const PORT = 8080; // default port 8080
 const bodyParser = require("body-parser");
 const cookieParser = require('cookie-parser');
 const bcrypt = require('bcrypt');
+const cookieSession = require('cookie-session');
 
 
 
 app.use(cookieParser());
 app.use(bodyParser.urlencoded({extended: true}));
 app.set("view engine", "ejs");
+
+app.use(cookieSession({
+  name: 'session',
+  keys: ["1"],
+}))
+
 
 // DATABASE
 
@@ -77,9 +84,9 @@ function urlsForUser(userID) {
 
 app.get("/urls/new", (req, res) => {
   let templateVars = {
-    username: req.cookies["username"]
+    username: req.session["username"]
   }
-  if (req.cookies["username"]) {
+  if (req.session["username"]) {
     res.render("urls_new", templateVars );
   }
   else { // Redirect if not loggedin
@@ -94,7 +101,7 @@ app.get("/urls/:shortURL", (req, res) => {
   let templateVars = { 
     longURL: urlDatabase[req.params.shortURL].longURL,
     shortURL: req.params.shortURL, 
-    username: req.cookies["username"], };
+    username: req.session["username"], };
     res.render("urls_show", templateVars);
 
     //  if (users[userID].email === templateVars.username) { 
@@ -112,16 +119,16 @@ app.get("/u/:shortURL", (req, res) => {
 });
 
 app.get("/urls", (req, res) => {
-  let user = req.cookies["username"];
+  let user = req.session["username"];
   if (emailLookup(user)) {
     user = emailLookup(user).id
   }
   let templateVars = {
     urls: urlsForUser(user),
-    username: req.cookies["username"]
+    username: req.session["username"]
   }
 
-  if (req.cookies["username"]) {
+  if (req.session["username"]) {
     res.render("urls_index", templateVars );
   }
   else { // Redirect if not loggedin
@@ -132,7 +139,7 @@ app.get("/urls", (req, res) => {
 app.get("/register", (req, res) => {
   let templateVars = {
     urls: urlDatabase,
-    username: req.cookies["username"]
+    username: req.session["username"]
   }
 
   res.render("urls_register", templateVars);
@@ -141,7 +148,7 @@ app.get("/register", (req, res) => {
 app.get("/login", (req, res) => {
   let templateVars = {
     urls: urlDatabase,
-    username: req.cookies["username"]
+    username: req.session["username"]
   }
   res.render("urls_login", templateVars);
 })
@@ -152,14 +159,14 @@ app.post("/urls", (req, res) => { // creating 6 alphanumeric and adds to db
 
   urlDatabase[genURL] = {
     longURL: req.body.longURL,
-    userID: emailLookup(req.cookies["username"]).id
+    userID: emailLookup(req.session["username"]).id
 };
   res.redirect("/urls/" + genURL);         
 });
 
 app.post("/urls/:shortURL/delete", (req, res) => { // delete post
   shortURL = req.params.shortURL; 
-  let userID = emailLookup(req.cookies["username"]).id
+  let userID = emailLookup(req.session["username"]).id
   let urlID = urlDatabase[shortURL].userID;
   if (userID === urlID) {
     delete urlDatabase[shortURL];
@@ -173,7 +180,7 @@ app.post("/urls/:shortURL/delete", (req, res) => { // delete post
 app.post("/urls/:shortURL", (req, res) => { // update the long URL
   
   shortURL = req.params.shortURL;
-  let userID = emailLookup(req.cookies["username"]).id
+  let userID = emailLookup(req.session["username"]).id
   let urlID = urlDatabase[shortURL].userID;
   if (userID === urlID) {
     urlDatabase[shortURL].longURL = req.body.longURL;
@@ -185,7 +192,7 @@ app.post("/urls/:shortURL", (req, res) => { // update the long URL
 })
 
 app.post("/clearCookie", (req, res) => { // clear cookies
-  res.clearCookie("username");
+  req.session = null;
   res.redirect("/urls")
 })
 
@@ -203,7 +210,7 @@ else {
     password: bcrypt.hashSync(req.body.password, 10)
   }
   let username = users[genID].email;
-  res.cookie("username", username);
+  req.session["username"] = username;
   res.redirect("/urls")
 }
 })
@@ -211,7 +218,7 @@ else {
 app.post("/login", (req, res) => { //login into database
   let objectID = emailLookup(req.body.email);
   if(objectID.email === req.body.email && bcrypt.compareSync(req.body.password, objectID.password)) { 
-    res.cookie("username", objectID.email)
+    req.session["username"] = objectID.email
     res.redirect("/urls")
   }
   else {
