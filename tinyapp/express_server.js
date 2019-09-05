@@ -4,13 +4,22 @@ const PORT = 8080; // default port 8080
 const bodyParser = require("body-parser");
 const cookieParser = require('cookie-parser');
 
+
 app.use(cookieParser());
 app.use(bodyParser.urlencoded({extended: true}));
 app.set("view engine", "ejs");
 
+// DATABASE
+
 const urlDatabase = {
-  "b2xVn2": "http://www.lighthouselabs.ca",
-  "9sm5xK": "http://www.google.com"
+  "b2xVn2": {
+    longURL: "http://www.lighthouselabs.ca",
+    userID: "userRandomID" 
+  },
+  "9sm5xK": { 
+    longURL: "http://www.google.com",
+    userID: "userRandomID" 
+  }
 };
 
 const users = { 
@@ -25,6 +34,9 @@ const users = {
     password: "dishwasher-funk"
   }
 }
+
+
+// FUNCTIONS
 
 function generateRandomString() { 
   let result = [];
@@ -46,12 +58,18 @@ function emailLookup(emailCheck) {
   return false;
 }
 
-
-// app.get("*", (req, res) => {
-//   let templateVars = {urls: urlDatabase}
-//   res.redirect("/urls")
-// });
-
+function urlsForUser(userID) {
+  let newObject = {};
+  for (let par in urlDatabase) {
+    if (urlDatabase[par].userID === userID) {
+      newObject[par] = {
+        longURL: urlDatabase[par].longURL,
+        userID: userID
+      }
+    }
+  }
+  return newObject;
+}
 
 // GETS
 
@@ -59,15 +77,31 @@ app.get("/urls/new", (req, res) => {
   let templateVars = {
     username: req.cookies["username"]
   }
-  res.render("urls_new", templateVars);
+  if (req.cookies["username"]) {
+    res.render("urls_new", templateVars );
+  }
+  else { // Redirect if not loggedin
+    res.render("urls_login", templateVars)
+  }
 });
 
 app.get("/urls/:shortURL", (req, res) => {
+
+  let userID = urlDatabase[req.params.shortURL].userID 
+ 
   let templateVars = { 
-    longURL: urlDatabase[req.params.shortURL],
+    longURL: urlDatabase[req.params.shortURL].longURL,
     shortURL: req.params.shortURL, 
     username: req.cookies["username"], };
-  res.render("urls_show", templateVars);
+    res.render("urls_show", templateVars);
+
+    //  if (users[userID].email === templateVars.username) { 
+    //    res.render("urls_show", templateVars);
+    //  }
+    //  else{
+    //    res.status(401).send("You do not have access");
+    //  }
+
 });
 
 app.get("/u/:shortURL", (req, res) => {
@@ -76,10 +110,21 @@ app.get("/u/:shortURL", (req, res) => {
 });
 
 app.get("/urls", (req, res) => {
+  let user = req.cookies["username"];
+  if (emailLookup(user)) {
+    user = emailLookup(user).id
+  }
   let templateVars = {
-    urls: urlDatabase,
-    username: req.cookies["username"]}
-  res.render("urls_index", templateVars );
+    urls: urlsForUser(user),
+    username: req.cookies["username"]
+  }
+
+  if (req.cookies["username"]) {
+    res.render("urls_index", templateVars );
+  }
+  else { // Redirect if not loggedin
+    res.render("urls_login", templateVars)
+  }
 });
 
 app.get("/register", (req, res) => {
@@ -102,20 +147,39 @@ app.get("/login", (req, res) => {
 
 app.post("/urls", (req, res) => { // creating 6 alphanumeric and adds to db
   let genURL = generateRandomString();
-  urlDatabase[genURL] = req.body.longURL;
+
+  urlDatabase[genURL] = {
+    longURL: req.body.longURL,
+    userID: emailLookup(req.cookies["username"]).id
+};
   res.redirect("/urls/" + genURL);         
 });
 
 app.post("/urls/:shortURL/delete", (req, res) => { // delete post
   shortURL = req.params.shortURL; 
-  delete urlDatabase[shortURL];
-  res.redirect("/urls");
+  let userID = emailLookup(req.cookies["username"]).id
+  let urlID = urlDatabase[shortURL].userID;
+  if (userID === urlID) {
+    delete urlDatabase[shortURL];
+    res.redirect("/urls")
+  }
+  else {
+    res.status(403).send("No access")
+  }
 }) 
 
 app.post("/urls/:shortURL", (req, res) => { // update the long URL
+  
   shortURL = req.params.shortURL;
-  urlDatabase[shortURL] = req.body.longURL;
-  res.redirect("/urls");
+  let userID = emailLookup(req.cookies["username"]).id
+  let urlID = urlDatabase[shortURL].userID;
+  if (userID === urlID) {
+    urlDatabase[shortURL].longURL = req.body.longURL;
+    res.redirect("/urls")
+  }
+  else {
+    res.status(403).send("No access")
+  }
 })
 
 app.post("/clearCookie", (req, res) => { // clear cookies
