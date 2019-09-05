@@ -3,6 +3,8 @@ const app = express();
 const PORT = 8080; // default port 8080
 const bodyParser = require("body-parser");
 const cookieParser = require('cookie-parser');
+const bcrypt = require('bcrypt');
+
 
 
 app.use(cookieParser());
@@ -190,6 +192,7 @@ app.post("/clearCookie", (req, res) => { // clear cookies
 app.post("/register", (req, res) => { // register users to the database
 let genID = generateRandomString();
 let em = req.body.email;
+
 if (em === "" || req.body.password === "" || emailLookup(em).email === em) {
   res.status(400).send("STATUS: 400. Please go back and enter a unique email and password!!");
 }
@@ -197,7 +200,7 @@ else {
   users[genID] = {
     id: genID,
     email: req.body.email,
-    password: req.body.password
+    password: bcrypt.hashSync(req.body.password, 10)
   }
   let username = users[genID].email;
   res.cookie("username", username);
@@ -207,7 +210,7 @@ else {
 
 app.post("/login", (req, res) => { //login into database
   let objectID = emailLookup(req.body.email);
-  if(objectID.email === req.body.email && objectID.password === req.body.password) {
+  if(objectID.email === req.body.email && bcrypt.compareSync(req.body.password, objectID.password)) { 
     res.cookie("username", objectID.email)
     res.redirect("/urls")
   }
