@@ -5,6 +5,7 @@ const bodyParser = require("body-parser");
 const cookieParser = require('cookie-parser');
 const bcrypt = require('bcrypt');
 const cookieSession = require('cookie-session');
+const { urlsForUser, emailLookup, generateRandomString } = require('./helpers')
 
 
 
@@ -47,38 +48,38 @@ const users = {
 
 // FUNCTIONS
 
-function generateRandomString() { 
-  let result = [];
-  let arrayString = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m","n", "o", "p","q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0"]
-  for (let i = 0; i < 6; i++) {
-    let x = Math.floor(Math.random() * 35)
-    result.push(arrayString[x]);
+// function generateRandomString() { 
+//   let result = [];
+//   let arrayString = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m","n", "o", "p","q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0"]
+//   for (let i = 0; i < 6; i++) {
+//     let x = Math.floor(Math.random() * 35)
+//     result.push(arrayString[x]);
 
-  }
-  return result.join('')
-}
+//   }
+//   return result.join('')
+// }
 
-function emailLookup(emailCheck) {
-  for (let par in users) {
-    if (emailCheck === users[par].email) {
-      return users[par];
-    }
-  }
-  return false;
-}
+// function emailLookup(emailCheck) {
+//   for (let par in users) {
+//     if (emailCheck === users[par].email) {
+//       return users[par];
+//     }
+//   }
+//   return false;
+// }
 
-function urlsForUser(userID) {
-  let newObject = {};
-  for (let par in urlDatabase) {
-    if (urlDatabase[par].userID === userID) {
-      newObject[par] = {
-        longURL: urlDatabase[par].longURL,
-        userID: userID
-      }
-    }
-  }
-  return newObject;
-}
+// function urlsForUser(userID) {
+//   let newObject = {};
+//   for (let par in urlDatabase) {
+//     if (urlDatabase[par].userID === userID) {
+//       newObject[par] = {
+//         longURL: urlDatabase[par].longURL,
+//         userID: userID
+//       }
+//     }
+//   }
+//   return newObject;
+// }
 
 // GETS
 
@@ -120,11 +121,11 @@ app.get("/u/:shortURL", (req, res) => {
 
 app.get("/urls", (req, res) => {
   let user = req.session["username"];
-  if (emailLookup(user)) {
-    user = emailLookup(user).id
+  if (emailLookup(user, users)) {
+    user = emailLookup(user, users).id
   }
   let templateVars = {
-    urls: urlsForUser(user),
+    urls: urlsForUser(user, urlDatabase),
     username: req.session["username"]
   }
 
@@ -159,14 +160,14 @@ app.post("/urls", (req, res) => { // creating 6 alphanumeric and adds to db
 
   urlDatabase[genURL] = {
     longURL: req.body.longURL,
-    userID: emailLookup(req.session["username"]).id
+    userID: emailLookup(req.session["username"], users).id
 };
   res.redirect("/urls/" + genURL);         
 });
 
 app.post("/urls/:shortURL/delete", (req, res) => { // delete post
   shortURL = req.params.shortURL; 
-  let userID = emailLookup(req.session["username"]).id
+  let userID = emailLookup(req.session["username"], users).id
   let urlID = urlDatabase[shortURL].userID;
   if (userID === urlID) {
     delete urlDatabase[shortURL];
@@ -180,7 +181,7 @@ app.post("/urls/:shortURL/delete", (req, res) => { // delete post
 app.post("/urls/:shortURL", (req, res) => { // update the long URL
   
   shortURL = req.params.shortURL;
-  let userID = emailLookup(req.session["username"]).id
+  let userID = emailLookup(req.session["username"], users).id
   let urlID = urlDatabase[shortURL].userID;
   if (userID === urlID) {
     urlDatabase[shortURL].longURL = req.body.longURL;
@@ -200,7 +201,7 @@ app.post("/register", (req, res) => { // register users to the database
 let genID = generateRandomString();
 let em = req.body.email;
 
-if (em === "" || req.body.password === "" || emailLookup(em).email === em) {
+if (em === "" || req.body.password === "" || emailLookup(em, users).email === em) {
   res.status(400).send("STATUS: 400. Please go back and enter a unique email and password!!");
 }
 else {
@@ -216,7 +217,7 @@ else {
 })
 
 app.post("/login", (req, res) => { //login into database
-  let objectID = emailLookup(req.body.email);
+  let objectID = emailLookup(req.body.email, users);
   if(objectID.email === req.body.email && bcrypt.compareSync(req.body.password, objectID.password)) { 
     req.session["username"] = objectID.email
     res.redirect("/urls")
